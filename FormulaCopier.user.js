@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         FormulaCopier
 // @namespace    http://tampermonkey.net/
-// @version      0.4
-// @description  Copy LaTeX formulas when copying text on Zhihu, Wikipedia and OpenReview.
+// @version      0.5
+// @description  Copy LaTeX formulas when copying text on Zhihu, Wikipedia, OpenReview and ChatGPT.
 // @author       Yuhang Chen(github.com/yuhangchen0), Dramwig(github.com/Dramwig)
 // @match        https://www.zhihu.com/*
 // @match        https://zhuanlan.zhihu.com/p/*
 // @match        https://*.wikipedia.org/*
 // @match        https://openreview.net/*
+// @match        https://chatgpt.com/*
 // @grant        none
 // ==/UserScript==
 
@@ -23,6 +24,8 @@
             handleWiki(selectedHtml, event);
         } else if (window.location.hostname.includes('openreview.net')) {
             handleOpenReview(selectedHtml, event);
+        } else if (window.location.hostname.includes('chatgpt.com')) {
+            handleChatGPT(selectedHtml, event);
         }
     });
 
@@ -35,6 +38,12 @@
             formulaSelector = '.mwe-math-element';
         } else if (window.location.hostname.includes('openreview.net')) {
             formulaSelector = 'mjx-container';
+        } else if (window.location.hostname.includes('chatgpt.com')) {
+            formulaSelector = '.katex';
+        }
+
+        if (!formulaSelector) {
+            return;
         }
 
         const allFormulas = document.querySelectorAll(formulaSelector);
@@ -82,15 +91,32 @@
         }
     }
 
+    function handleChatGPT(selectedHtml, event) {
+        if (selectedHtml.includes('katex')) {
+            const container = document.createElement('div');
+            container.innerHTML = selectedHtml;
+            replaceChatGPTFormulas(container);
+            setClipboardData(event, container.textContent);
+        }
+    }
+
     function applyHighlightStyle(formula) {
         const mathJaxSVG = formula.querySelector('.MathJax_SVG');
         if (mathJaxSVG && mathJaxSVG.style) {
             mathJaxSVG.style.backgroundColor = 'lightblue';
+            return;
         }
 
         const mathJaxCHTML = formula.querySelector('mjx-math');
         if (mathJaxCHTML && mathJaxCHTML.style) {
             mathJaxCHTML.style.backgroundColor = 'lightblue';
+            return;
+        }
+
+        const katexHtml = formula.querySelector('.katex-html');
+        if (katexHtml && katexHtml.style) {
+            katexHtml.style.backgroundColor = 'lightblue';
+            return;
         }
 
         if (formula && formula.style) {
@@ -107,6 +133,11 @@
         const mathJaxCHTML = formula.querySelector('mjx-math');
         if (mathJaxCHTML && mathJaxCHTML.style) {
             mathJaxCHTML.style.backgroundColor = '';
+        }
+
+        const katexHtml = formula.querySelector('.katex-html');
+        if (katexHtml && katexHtml.style) {
+            katexHtml.style.backgroundColor = '';
         }
 
         if (formula && formula.style) {
@@ -144,6 +175,16 @@
                 const texCode = annotation.textContent;
                 const texNode = document.createTextNode('$' + texCode + '$');
                 formula.replaceWith(texNode);
+            }
+        });
+    }
+
+    function replaceChatGPTFormulas(container) {
+        container.querySelectorAll('.katex').forEach(formula => {
+            const annotation = formula.querySelector('annotation[encoding="application/x-tex"]');
+            if (annotation) {
+                const texCode = annotation.textContent.trim();
+                formula.replaceWith(document.createTextNode('$' + texCode + '$'));
             }
         });
     }

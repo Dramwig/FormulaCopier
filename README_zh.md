@@ -8,10 +8,11 @@
 
 目前在Google Chrome和Microsoft Edge上测试可用。
 
-## v0.3更新
+## 更新
 
-* 新增支持Wikipedia公式复制。
-* 修复已知bug。
+- v0.5 新增支持[ChatGPT](https://chatgpt.com/)公式复制。
+- v0.4 新增支持[OpenReview](https://openreview.net/)公式复制。
+- v0.3 新增支持[Wikipedia](https://www.wikipedia.org/)公式复制。
 
 ## 支持网页
 
@@ -19,6 +20,7 @@
 * https://zhuanlan.zhihu.com/p/*
 * https://*.wikipedia.org/\*
 * https://openreview.net/*
+* https://chatgpt.com/*
 
 ## 功能
 

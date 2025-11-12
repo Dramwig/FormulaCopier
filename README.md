@@ -6,10 +6,11 @@ This Tampermonkey script allows you to copy text and the original LaTeX formulas
 
 Tested and works on Google Chrome and Microsoft Edge.
 
-## v0.3 Update
+## Updates
 
-* Supported  [Wikipedia](https://www.wikipedia.org).
-* Fixed known bugs.
+- v0.5 Added support for copying formulas on [ChatGPT](https://chatgpt.com/).
+- v0.4 Added support for copying formulas on [OpenReview](https://openreview.net/).
+- v0.3 Added support for copying formulas on [Wikipedia](https://www.wikipedia.org/).
 
 ## Supported Websites
 
@@ -17,6 +18,7 @@ Tested and works on Google Chrome and Microsoft Edge.
 * https://zhuanlan.zhihu.com/p/*
 * https://*.wikipedia.org/\*
 * https://openreview.net/*
+* https://chatgpt.com/*
 
 ## Features
 
