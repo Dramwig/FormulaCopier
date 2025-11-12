@@ -1,4 +1,4 @@
-[中文](./README.md) | English
+[中文](./README_zh.md) | English
 
 # FormulaCopier
 
@@ -15,7 +15,8 @@ Tested and works on Google Chrome and Microsoft Edge.
 
 * https://www.zhihu.com/*
 * https://zhuanlan.zhihu.com/p/*
-* https://wikipedia.org/*
+* https://*.wikipedia.org/\*
+* https://openreview.net/*
 
 ## Features
 

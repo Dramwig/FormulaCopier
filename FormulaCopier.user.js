@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         FormulaCopier
 // @namespace    http://tampermonkey.net/
-// @version      0.3
-// @description  Copy LaTeX formulas when copying text on Zhihu and Wikipedia.
-// @author       Yuhang Chen(github.com/yuhangchen0)
+// @version      0.4
+// @description  Copy LaTeX formulas when copying text on Zhihu, Wikipedia and OpenReview.
+// @author       Yuhang Chen(github.com/yuhangchen0), Dramwig(github.com/Dramwig)
 // @match        https://www.zhihu.com/*
 // @match        https://zhuanlan.zhihu.com/p/*
 // @match        https://*.wikipedia.org/*
+// @match        https://openreview.net/*
 // @grant        none
 // ==/UserScript==
 
@@ -20,26 +21,37 @@
             handleZhihu(selectedHtml, event);
         } else if (window.location.hostname.includes('wikipedia.org')) {
             handleWiki(selectedHtml, event);
+        } else if (window.location.hostname.includes('openreview.net')) {
+            handleOpenReview(selectedHtml, event);
         }
     });
 
     document.addEventListener('selectionchange', function() {
-        const allFormulas = document.querySelectorAll('.ztext-math');
-        allFormulas.forEach(formula => removeHighlightStyle(formula));
+        let formulaSelector = null;
+
+        if (window.location.hostname.includes('zhihu.com')) {
+            formulaSelector = '.ztext-math';
+        } else if (window.location.hostname.includes('wikipedia.org')) {
+            formulaSelector = '.mwe-math-element';
+        } else if (window.location.hostname.includes('openreview.net')) {
+            formulaSelector = 'mjx-container';
+        }
+
+        const allFormulas = document.querySelectorAll(formulaSelector);
+        allFormulas.forEach(removeHighlightStyle);
 
         const sel = window.getSelection();
-        if (sel.rangeCount) {
-            for (let i = 0; i < sel.rangeCount; i++) {
-                const range = sel.getRangeAt(i);
-                const selectedFormulas = range.cloneContents().querySelectorAll('.ztext-math');
-                selectedFormulas.forEach(selectedFormula => {
-                    allFormulas.forEach(pageFormula => {
-                        if (selectedFormula.getAttribute('data-tex') === pageFormula.getAttribute('data-tex')) {
-                            applyHighlightStyle(pageFormula);
-                        }
-                    });
-                });
-            }
+        if (!sel.rangeCount) {
+            return;
+        }
+
+        for (let i = 0; i < sel.rangeCount; i++) {
+            const range = sel.getRangeAt(i);
+            allFormulas.forEach(formula => {
+                if (range.intersectsNode(formula)) {
+                    applyHighlightStyle(formula);
+                }
+            });
         }
     });
 
@@ -47,7 +59,7 @@
         if (selectedHtml.includes('data-tex')) {
             const container = document.createElement('div');
             container.innerHTML = selectedHtml;
-            replaceZhihuFormulas(container, '.ztext-math', 'data-tex');
+            replaceZhihuFormulas(container);
             setClipboardData(event, container.textContent);
         }
     }
@@ -61,10 +73,28 @@
         }
     }
 
+    function handleOpenReview(selectedHtml, event) {
+        if (selectedHtml.includes('mjx-container')) {
+            const container = document.createElement('div');
+            container.innerHTML = selectedHtml;
+            replaceOpenReviewFormulas(container);
+            setClipboardData(event, container.textContent);
+        }
+    }
+
     function applyHighlightStyle(formula) {
         const mathJaxSVG = formula.querySelector('.MathJax_SVG');
-        if (mathJaxSVG) {
+        if (mathJaxSVG && mathJaxSVG.style) {
             mathJaxSVG.style.backgroundColor = 'lightblue';
+        }
+
+        const mathJaxCHTML = formula.querySelector('mjx-math');
+        if (mathJaxCHTML && mathJaxCHTML.style) {
+            mathJaxCHTML.style.backgroundColor = 'lightblue';
+        }
+
+        if (formula && formula.style) {
+            formula.style.backgroundColor = 'lightblue';
         }
     }
 
@@ -73,6 +103,37 @@
         if (mathJaxSVG && mathJaxSVG.style) {
             mathJaxSVG.style.backgroundColor = '';
         }
+
+        const mathJaxCHTML = formula.querySelector('mjx-math');
+        if (mathJaxCHTML && mathJaxCHTML.style) {
+            mathJaxCHTML.style.backgroundColor = '';
+        }
+
+        if (formula && formula.style) {
+            formula.style.backgroundColor = '';
+        }
+    }
+
+    function getLatexFromMjxContainer(container) {
+        if (!window.MathJax?.startup?.document) return null;
+
+        const counter = container.getAttribute('ctxtmenu_counter');
+        const target = counter 
+            ? document.querySelector(`mjx-container[ctxtmenu_counter="${counter}"]`) || container
+            : container;
+
+        const mathItems = MathJax.startup.document.getMathItemsWithin(target);
+        const math = mathItems[0]?.math;
+        return typeof math === 'string' ? math.trim() : null;
+    }
+
+    function replaceOpenReviewFormulas(container) {
+        container.querySelectorAll('mjx-container').forEach(formula => {
+            const texCode = getLatexFromMjxContainer(formula);
+            if (texCode) {
+                formula.replaceWith(document.createTextNode('$' + texCode + '$'));
+            }
+        });
     }
 
     function replaceWikipediaFormulas(container) {
@@ -87,15 +148,14 @@
         });
     }
 
-    function replaceZhihuFormulas(container, selector, attribute) {
-        const formulas = container.querySelectorAll(selector);
+    function replaceZhihuFormulas(container) {
+        const formulas = container.querySelectorAll('.ztext-math');
         formulas.forEach(formula => {
-            const texCode = formula.getAttribute(attribute);
+            const texCode = formula.getAttribute('data-tex');
             const texNode = document.createTextNode('$' + texCode + '$');
             formula.replaceWith(texNode);
         });
     }
-
 
     function setClipboardData(event, text) {
         event.clipboardData.setData('text/plain', text);

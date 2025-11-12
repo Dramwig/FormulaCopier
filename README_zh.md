@@ -1,8 +1,8 @@
-[English](./README_EN.md) | 中文
+[English](./README.md) | 中文
 
 # FormulaCopier
 
-在某些网站（比如zhihu.com）复制内容时，如果出现被渲染的LeTeX公式，那么这个公式可能无法被复制.
+在某些网站（比如zhihu.com）复制内容时，如果出现被渲染的LaTeX公式，那么这个公式可能无法被复制.
 
 这个Tampermonkey脚本可以让你在这些网页上复制文本时，同时复制文本和原始LaTeX公式并为公式添加高亮。
 
@@ -17,7 +17,8 @@
 
 * https://www.zhihu.com/*
 * https://zhuanlan.zhihu.com/p/*
-* https://\*.wikipedia.org/\*
+* https://*.wikipedia.org/\*
+* https://openreview.net/*
 
 ## 功能
 
