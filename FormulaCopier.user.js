@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FormulaCopier
 // @namespace    http://tampermonkey.net/
-// @version      0.5
+// @version      0.5.1
 // @description  Copy LaTeX formulas when copying text on Zhihu, Wikipedia, OpenReview and ChatGPT.
 // @author       Yuhang Chen(github.com/yuhangchen0), Dramwig(github.com/Dramwig)
 // @match        https://www.zhihu.com/*
@@ -16,6 +16,11 @@
     'use strict';
 
     document.addEventListener('copy', function(event) {
+        // ⭐ ChatGPT 特殊处理：复制前先把 LaTeX 写到 data-latex 上
+        if (window.location.hostname.includes('chatgpt.com')) {
+            cacheChatGPTLatex();
+        }
+
         let selectedHtml = getSelectionHtml();
 
         if (window.location.hostname.includes('zhihu.com')) {
@@ -63,6 +68,19 @@
             });
         }
     });
+
+    function cacheChatGPTLatex() {
+        const formulas = document.querySelectorAll('.katex');
+        formulas.forEach(formula => {
+            if (!formula.hasAttribute('data-latex')) {
+                const annotation = formula.querySelector('annotation[encoding="application/x-tex"]');
+                if (annotation) {
+                    formula.setAttribute('data-latex', annotation.textContent.trim());
+                }
+            }
+        });
+    }
+
 
     function handleZhihu(selectedHtml, event) {
         if (selectedHtml.includes('data-tex')) {
@@ -149,7 +167,7 @@
         if (!window.MathJax?.startup?.document) return null;
 
         const counter = container.getAttribute('ctxtmenu_counter');
-        const target = counter 
+        const target = counter
             ? document.querySelector(`mjx-container[ctxtmenu_counter="${counter}"]`) || container
             : container;
 
@@ -181,13 +199,24 @@
 
     function replaceChatGPTFormulas(container) {
         container.querySelectorAll('.katex').forEach(formula => {
-            const annotation = formula.querySelector('annotation[encoding="application/x-tex"]');
-            if (annotation) {
-                const texCode = annotation.textContent.trim();
+            // ⭐ 优先使用复制前缓存好的 data-latex
+            let texCode = formula.getAttribute('data-latex');
+
+            // 兼容：如果选区里恰好带了 annotation，也可以直接用
+            if (!texCode) {
+                const annotation = formula.querySelector('annotation[encoding="application/x-tex"]');
+                if (annotation) {
+                    texCode = annotation.textContent.trim();
+                }
+            }
+
+            if (texCode) {
                 formula.replaceWith(document.createTextNode('$' + texCode + '$'));
             }
+            // 如果依然拿不到 texCode，就不动这个节点，退回原生复制行为
         });
     }
+
 
     function replaceZhihuFormulas(container) {
         const formulas = container.querySelectorAll('.ztext-math');
